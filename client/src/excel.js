@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import * as XLSX from "xlsx";
+import { Offline, Online } from "react-detect-offline"
 
 function ExcelToJsonConverter() {
     const [file, setFile] = useState(null);
@@ -16,7 +17,7 @@ function ExcelToJsonConverter() {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const data = e.target.result;
-                const workbook = XLSX.read(data, { type: "binary" });
+                const workbook = XLSX.read(data, { type: "array" });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
                 const json = XLSX.utils.sheet_to_json(worksheet);
@@ -25,11 +26,11 @@ function ExcelToJsonConverter() {
                 //setJsonData(JSON.stringify(json, null, 2));
                 handleBulkGeolocationsLookup(json);
             };
-            reader.readAsBinaryString(file);
+            reader.readAsArrayBuffer(file);
         }
     };
     // Bulk Geolocations Lookup is 5 steps
-    const handleBulkGeolocationsLookup = (jf) => {
+    const handleBulkGeolocationsLookup = async (jf) => {
         jsonFile = jf;
         // 1. Get the IP addresses from the JSON data
         var ipAddresses = Object.entries(jf).map(([key, value]) => {
@@ -41,9 +42,9 @@ function ExcelToJsonConverter() {
             return null;
         });
         // remove duplicate IP addresses
-        const uniqueIpAddresses = [...new Set(ipAddresses)];
-        ipAddresses = uniqueIpAddresses;
+        ipAddresses = [...new Set(ipAddresses)];
         console.log(ipAddresses);
+        setJsonData(JSON.stringify(ipAddresses, null, 2));
         //geolocationParams.setFields('country_code3,state_prov');// Specify the required fields/objects for multiple IP addresses
         // if length is larger than maxLength, then split the array into multiple arrays of maxLength
         if (Object.entries(ipAddresses).length > maxLength) {
@@ -55,15 +56,15 @@ function ExcelToJsonConverter() {
                 // Query geolocation for multiple IP addresses and all fields
                 geolocationParams.setIPAddresses(splitArrays);
                 // 2. Get the state and country from the IP address
-                ipgeolocationApi.getGeolocation(handleResponse, geolocationParams); // Result goes to handleResponse
+                await ipgeolocationApi.getGeolocation(handleResponse, geolocationParams) // Result goes to handleResponse
             }
         } else {
             // Query geolocation for multiple IP addresses and all fields
             geolocationParams.setIPAddresses(ipAddresses);
             // 2. Get the state and country from the IP address
-            ipgeolocationApi.getGeolocation(handleResponse, geolocationParams); // Result goes to handleResponse
+            await ipgeolocationApi.getGeolocation(handleResponse, geolocationParams)// Result goes to handleResponse
         }
-        setJsonData(JSON.stringify(jsonFile, null, 2)); // this just displays to the user the JSON object
+        //setJsonData(JSON.stringify(jsonFile, null, 2)); // this just displays to the user the JSON object
         // 4. Put the JSON object into an Excel file
         const worksheet = XLSX.utils.json_to_sheet(jsonFile);
         const workbook = XLSX.utils.book_new();
@@ -85,7 +86,6 @@ function ExcelToJsonConverter() {
         console.log(response);
         if (response["message"]) {
             console.log(response["message"]);
-            return;
         }
         // 3. For jsonData object (jsonFile), push response into the JSON object row as well
         for (var i = 0; i < jsonFile.length; i++) {
@@ -103,6 +103,9 @@ function ExcelToJsonConverter() {
 
     return (
         <div>
+            <Offline>You're offline right now. Check your connection.</Offline>
+            <Online>You're online right now.</Online>
+            <br></br>
             <input
                 type="file"
                 accept=".xls,.xlsx"

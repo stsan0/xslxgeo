@@ -13,6 +13,7 @@
     "ip-geolocation-api-javascript-sdk": "^1.0.9",
     "node-polyfill-webpack-plugin": "^3.0.0",
     "react": "^18.2.0",
+    "react-detect-offline": "^2.4.5",
     "react-dom": "^18.2.0",
     "react-scripts": "^5.0.1",
     "stream-http": "^3.2.0",
